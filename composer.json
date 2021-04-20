@@ -1,5 +1,5 @@
 {
-    "name": "sunnflail/router",
+    "name": "sunnyflail/router",
     "description": "A simple routing utility",
     "type": "library",
     "require-dev": {
