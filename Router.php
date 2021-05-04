@@ -2,62 +2,44 @@
 
 namespace SunnyFlail\Router;
 
+use SunnyFlail\Router\Exceptions\NotFoundException;
+use SunnyFlail\Router\Exceptions\RoutingException;
+
+/**
+ * Class which is responsible for storing Routes and Matching Request against them
+ */
 class Router
 {
 
     /**
      * Array containing registered routes
      * 
-     * @var array
+     * @var array<Route>
      */
     private array $routeCollection = [];
 
     /**
-     * Array containing allowed HTTP methods
-     * 
-     * @var array
-     */
-    private const ALLOWED_METHODS = [
-        "GET",
-        "POST",
-        "PUT",
-        "HEAD",
-        "OPTIONS",
-        "DELETE"
-    ];    
-
-    /**
      * Adds new Route 
      *
-     * @param array $methods
-     * @param string $name
-     * @param string $path
+     * @param array $methods Http methods which this Route will respond to
+     * @param string $name Name of the Route
+     * @param string $path Path This Route will match
      * @param callable $callback
      * @param array|null $params
      * @param array|null $defaults
      * @return void
      */
     public function addRoute(
-        string $name,
-        string $path,
-        $callback,
-        array $methods = ["GET", "HEAD"],
-        array $params = null,
-        array $defaults = null
+        string $name, string $path,  callable $callback, array $methods = ["GET", "HEAD"],
+        array $params = [], array $defaults = []
     ){       
-        if ($notSupported = array_diff($methods, self::ALLOWED_METHODS)) {
-            throw new RoutingException(
-                sprintf("Methods `%s` aren't supported!", implode(" ,", $notSupported))
-            );
-        }
-
         if (isset($this->routeCollection[$name])) {
             throw new RoutingException(
                 sprintf("Route with name %s has already been registered!!", $name)
             );
         }
                 
-        $this->routeCollection[$name] = new Route($name, $path, $methods, $callback, $params, $defaults);
+        $this->routeCollection[$name] = new Route($name, $path, $callback, $methods, $params, $defaults);
     }
 
     /**
@@ -79,26 +61,117 @@ class Router
     }
 
     /**
-     * Matches url against Route
-     * If a Route matches the url, returns a MatchedRoute object containing data scraped from params
-     * Returns null if no Route matched provided url and method
+     * Returns all registered routes
+     * 
+     * @return Route[]
+     */
+    public function getAllRoutes(): array
+    {
+        return $this->routeCollection;
+    }
+
+    /**
+     * Matches Request against Route
+     * 
+     * If a Route matches the url returns a MatchedData object,
+     * containing data scraped from params and matched Route
      * 
      * @param string $method - name of HTTP method 
      * @param string $url
-     * @return MatchedRoute|null
+     * @throws NotFoundException if no Route is matched
+     * @throws RoutingException if provided Route is malformed
+     *                          (contains default value for non existing param)
+     * @return MatchedData Object containing matched Route and data scraped from its params
      */
-    public function match(string $method, string $url): ?MatchedRoute
+    public function match(string $method, $requestPath): MatchedData
     {
-        $method = strtoupper($method);
-        $url = $url[-1] === "/" ? $url : $url."/";
+        $requestPath = $requestPath[-1] === "/" ? $requestPath : $requestPath."/";
 
         foreach ($this->routeCollection as $route) {
-            if (!is_null($matchedRoute = $route->match($method, $url))) {
-                return $matchedRoute;
+
+            $routePath = $route->getPath();
+            $defaults = $route->getDefaults();
+            $params = $route->getParams();
+
+            $data = [];
+
+            if (!in_array($method, $route->getMethods())) {
+                continue;
             }
+    
+            if (!($params === null && $requestPath === $routePath)) {
+            
+                $requestSegments = explode("/", $requestPath);
+                $routeSegments = explode("/", $routePath);
+    
+                for ($i = 0; $i < count($routeSegments); $i++) {
+    
+                    if (isset($requestSegments[$i])) {
+    
+                        $currentRequestSegment = $requestSegments[$i];
+                        $currentRouteSegment = $routeSegments[$i];
+    
+                        if (strcasecmp($currentRequestSegment, $currentRouteSegment) === 0) {
+                            continue;
+                        } 
+                        
+                        if (preg_match("/^\{(\w+)\}$/i", $currentRouteSegment, $paramName)) {
+    
+                            $paramName = $paramName[1];
+    
+                            if (!isset($params[$paramName])) {
+                                throw new RoutingException(
+                                    sprintf("Regex for param '%s' not provided!", $paramName));
+                            }
+                            if (preg_match(
+                                    sprintf("/%s/", $params[$paramName]),
+                                    $currentRequestSegment,
+                                    $paramData)
+                            ) {
+                                $data[$paramName] = $paramData[0];
+                                continue;
+                            }
+                        }
+                    }
+                    
+                    if (empty($requestSegments[$i]) && $defaults !== null) {
+                        if (!preg_match("/^\{(\w+)\}$/i", $routeSegments[$i], $paramName)) {
+                            continue;
+                        }
+                        $paramName = $paramName[1];
+                        if (!isset($defaults[$paramName])) {
+                            continue;
+                        }
+                        $data[$paramName] = $defaults[$paramName];
+                        break;
+                    }
+    
+                    continue(2);
+                }
+            }
+            
+            return new MatchedData($route, $data); 
         }
 
-        return null;
+        throw new NotFoundException(sprintf(
+            "No route matches path '%s'", $requestPath));
+    }
+
+    /**
+     * Adds provided Routes to collection
+     */
+    public function addRoutes(Route ...$routes)
+    {
+        foreach($routes as $route) {
+            $name = $route->getName();
+
+            if (isset($this->routeCollection[$name])) {
+                throw new RoutingException(
+                    sprintf("Route with name %s has already been registered!!", $name)
+                );
+            }
+            $this->routeCollection[$name] = $route;
+        }
     }
 
 }

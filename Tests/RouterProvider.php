@@ -4,51 +4,25 @@ namespace SunnyFlail\Router\Tests;
 
 use \SunnyFlail\Router\{
     Router,
-    Route,
-    RoutingException
+    Exceptions\NotFoundException,
+    Exceptions\RoutingException
 };
 
 final class RouterProvider
 {
+    public static ?Router $router = null;
 
     public static function setUpRouter(): Router
     {
-        $router = new Router();
+        if (!isset(self::$router)) {
+            self::$router = new Router();
 
-        $router->addRoute(
-            name: 'add',
-            path: "/add",
-            callback: fn() => printf("Add!"),
-            methods: ["POST", "HEAD"]
-        );
-        $router->addRoute(
-            name: 'page',
-            path: "/{page}",
-            callback: fn() => printf("Page!"),
-            params: [
-                "page" => "\d+"
-            ],
-            defaults: [
-                "page" => 0
-            ]
-        );
-        $router->addRoute(
-            name: 'user_post',
-            path: "/{user_name}/{post_id}",
-            callback: fn() => printf("User post!"),
-            params: [
-                "user_name" => "\w+",
-                "post_id" => "\d+"
-            ]
-        );
+            foreach(RouteProvider::routeDataProvider() as $routeData) {
+                self::$router->addRoute(...$routeData);
+            }
+        }
 
-        $router->addRoute(
-            name: 'index',
-            path: "/index",
-            callback: fn() => printf("Index!")
-        );
-
-        return $router;
+        return self::$router;
     }
 
     public static function matchProvider(): array
@@ -67,9 +41,6 @@ final class RouterProvider
             ],
             "GET with Default" => [
                 $router, "/", "GET", $router->getRoute("page")
-            ],
-            "No Route Found" => [
-                $router, "/null/", "GET", null
             ]
         ];
     }
@@ -87,6 +58,26 @@ final class RouterProvider
             ],
             "GET with multiple Params" => [
                 $router, "/user/123", "GET", ["user_name" => 'user', "post_id" => '123']
+            ]
+        ];
+    }
+
+    public static function exceptionProvider(): array
+    {
+        $router = self::setUpRouter();
+
+        return [
+            "No Route Found" => [
+                $router,
+                fn(Router $router) => $router->match("GET", "/null/dull/"),
+                NotFoundException::class
+            ],
+            "Route already exists!" => [
+                $router,
+                fn(Router $router) => $router->addRoute(
+                    ...RouteProvider::routeDataProvider()["Simple post route"]
+                ),
+                RoutingException::class
             ]
         ];
     }

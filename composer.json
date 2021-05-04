@@ -11,16 +11,17 @@
             "email": "sunny.flail@gmail.com"
         }
     ],
-    "require": {},
+    "require": {
+    },
     "config": {
-        "optimize-autoloader": true
+        "classmap-authoritative": true
     },
     "autoload": {
         "psr-4": {
             "SunnyFlail\\Router\\" : ""
         },
         "exclude-from-classmap": [
-            "tests"
+            "Tests"
         ]
     }
 }

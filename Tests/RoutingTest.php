@@ -4,33 +4,12 @@ namespace SunnyFlail\Router\Tests;
 
 use \SunnyFlail\Router\{
     Router,
-    Route,
-    RoutingException
+    Route
 };
 use \PHPUnit\Framework\TestCase;
 
 final class RoutingTest extends TestCase
 {
-
-    public function paramDataProvider()
-    {
-        return [
-            "Simple GET" => [
-                '/index', "GET", self::$router->get("index")
-            ],
-            "Simple POST" => [
-                '/add', "POST", self::$router->get("add")
-            ],
-            "GET with Params" => [
-                '/1', "GET", [
-                    "page" => 1
-                ] 
-            ],
-            "No Route Found" => [
-                "/null/", "GET", null
-            ]
-        ];
-    }
 
     /**
      * @dataProvider \SunnyFlail\Router\Tests\RouterProvider::matchProvider
@@ -50,12 +29,23 @@ final class RoutingTest extends TestCase
      */
     public function testParamMatching(Router $router, string $url, string $method, array $expected)
     {
-        $matched = $router->match($method, $url)->getData();
+ 
+        $matchedData = $router->match($method, $url)?->getData();
 
         $this->assertEquals(
             $expected,
-            $matched
+            $matchedData
         );
+    }
+
+    /**
+     * @dataProvider \SunnyFlail\Router\Tests\RouterProvider::exceptionProvider
+     */
+    public function testExceptionThrowing(Router $router, callable $callback, string $exceptionName)
+    {
+        $this->expectException($exceptionName);
+
+        call_user_func($callback, $router);
     }
 
 }

@@ -2,9 +2,12 @@
 
 namespace SunnyFlail\Router;
 
-use \InvalidArgumentException;
+use \SunnyFlail\Router\Exceptions\UrlGenerationException;
 
-class Route
+/**
+ * A Route
+ */
+final class Route implements \JsonSerializable
 {
 
     /**
@@ -17,12 +20,14 @@ class Route
     /**
      * Array containing names of Http methods supported by this Route
      * 
+     * eg. ["GET", "OPTIONS"]
+     * 
      * @var array
      */
     protected array $methods;
     
     /**
-     * String specifing the route path
+     * String specifing the path route will match
      *
      * @var string
      */
@@ -31,33 +36,37 @@ class Route
     /**
      * Callback function used by this route
      *
+     * This may be an array containing the Controller fqcn and method name,
+     * function name or a Closure
+     * 
      * @var callable
      */
     protected $callback;
 
     /**
      * Array of regex'es for $path params
+     * 
      * eg. $path = "/index/{page}" 
-     *     $params = ["page" => "/\d+/"]
+     *     $params = ["page" => "\d+"]
      *
-     * @var array|null
+     * @var array
      */
-    protected ?array $params;
+    protected array $params;
 
     /**
      * Array containing default values for parameters
      * 
-     * @var array|null
+     * @var array
      */
-    protected ?array $defaults;
+    protected array $defaults;
 
     function __construct(
         string $name,
         string $path,
-        array $methods,
         callable $callback,
-        ?array $params = null,
-        ?array $defaults = null
+        array $methods = ["GET", "HEAD"],
+        array $params = [],
+        array $defaults = []
     ) {
         $this->name = $name;       
         $this->path = $path;       
@@ -70,7 +79,7 @@ class Route
     /**
      * Returns name of Route
      *
-     * @return string
+     * @return string 
      */
     public function getName(): string
     {
@@ -88,8 +97,10 @@ class Route
     }
 
     /**
-     * Returns Callback
+     * Returns Callback associated with this Route
      *
+     * @see $callback
+     * 
      * @return callable
     */
     public function getCallback(): callable
@@ -108,17 +119,17 @@ class Route
     }
     
     /**
-     * Returns array containing param regexes | null
+     * Returns array containing params
      *
-     * @return array|null
+     * @return array
      */
-    public function getParams(): ?array
+    public function getParams(): array
     {
         return $this->params;
     }
 
     /**
-     * Checks if route's parameters have default values
+     * Checks if this Route's parameters have default values
      *
      * @return bool
      */
@@ -132,146 +143,98 @@ class Route
      *
      * @return array|null
      */
-    public function getDefaults(): ?array
+    public function getDefaults(): array
     {
         return $this->defaults;
     }
 
     /**
-     * Generates Url from provided data array
-     * Data array MUST contain ALL params specified for the route
+     * Returns array containing HTTP methods this Route responds to
      *
-     * @param array $data
+     * @return array
+     */
+    public function getMethods(): array
+    {
+        return $this->methods;
+    }
+
+    /**
+     * Generates Url from provided data array
      * 
-     * @return string
-     * @throws RoutingException
+     * Data array MUST contain ALL params specified for the route
+     * 
+     * For eg. Schema @see $params
+     * 
+     * @param array $data Data adhering to this Route's schema
+     * 
+     * @return string Generated Url pointing to this Route
+     * @throws UrlGenerationException When provided data is malformed 
      */
     public function generateUrl(array $data = []): string
     {
         $url = $this->path;
+        $matchedParams = [];
 
-        foreach ($data as $key => $value) {
-            if ($key === "queries" || $key === "fragment") {
+        if (is_null($this->params)) {
+            return $url;
+        }
+        
+        foreach ($this->params as $paramName => $paramRegex) {
+            if (!isset($data[$paramName]) && !isset($this->defaults[$paramName])) {
+                throw new UrlGenerationException(
+                    sprintf("Data not provided for key %s of Route %s!", $paramName, $this->name)
+                );    
+            }
+
+            $matchedParams[] = $paramName;
+
+            if (isset($data[$paramName])) {
+                $paramData = $data[$paramName];
+                if (!preg_match("/$paramRegex/i", $paramData)) {
+                    throw new UrlGenerationException(
+                        sprintf(
+                            "Data provided for param %s of Route %s doesn't match the requirements!",
+                            $paramName, $this->name
+                        )
+                    );
+                }
+                $paramData = urlencode($paramData);
+                $url = str_replace("{".$paramName."}", $paramData, $url);
                 continue;
             }
-            if (!isset($this->params[$key])) { 
-                throw new RoutingException(
-                    sprintf("Provided data for unknown key '%s' !", $key)
-                );
-            }
-            if (preg_match($this->params[$key], $value)) {
-                $url = str_replace("{".$key."}", $value, $url);
-            } else {
-                throw new RoutingException(
-                    sprintf("Data provided for key '%s' doesn't match the requirements!", $key)
-                );
-            }
-        }
-       
-        if (isset($data["queries"])) {
-            $url .= "?";
 
-            foreach ($data["queries"] as $key => $value) {
-                
-                $url .= "$key=$value";
-
-                unset($data["queries"][$key]);
-
-                if (count($data["queries"] > 0)) {
-                    $url .= "&";
-                }
-            }
+            $url = substr($url, 0, strpos($url, "{$paramName}") - 1);
+            break;
         }
 
-        if (isset($data["fragment"])) {
-            $url .= "#".$data["fragment"];
-        }
-
-        if (preg_match_all("/({)(\w+)(})/i", $url, $inssufficient)) {
-            throw new RoutingException(
-                sprintf("Data not provided for keys %s !", implode(", ", $inssufficient[2]))
+        if ($insufficient = array_diff(
+            array_diff(array_keys($this->params), array_keys($this->defaults)),
+            $matchedParams
+        )) {
+            throw new UrlGenerationException(
+                sprintf(
+                    "Data wasn't provided for params '%s' of Route %s",
+                    implode(", ", $insufficient)
+                )
             );
         }
-        
-        return urlencode($url);
+
+        return $url;
     }
 
     /**
-     * Matches Route's path against provided url, returns Array with matched param data
-     * 
-     * @param string $method <- HTTP method
-     * @param string $url <- URL to match against
-     * 
-     * @return MatchedRoute|null 
-     */
-    public function match(string $method, string $url): ?MatchedRoute
-    {
-
-        $data = [];
-
-        if (!($this->params === null && $url === $this->path)) {
-        
-            $urlSegments = explode("/", $url);
-            $routeSegments = explode("/", $this->path);
-
-            for ($i = 0; $i < count($routeSegments); $i++) {
-
-                if (isset($urlSegments[$i])) {
-
-                    $currentUrlSegment = $urlSegments[$i];
-                    $currentRouteSegment = $routeSegments[$i];
-
-                    if (strcasecmp($currentUrlSegment, $currentRouteSegment) === 0) {
-                        continue;
-                    } 
-                    
-                    if (preg_match("/^({)(\w+)(})$/i", $currentRouteSegment, $paramName)) {
-
-                        $paramName = $paramName[2];
-
-                        if (!isset($this->params[$paramName])) {
-                            throw new RoutingException(
-                                sprintf("Regex for param '%s' not provided!"), $paramName
-                            );
-                        }
-                        if (preg_match("/".$this->params[$paramName]."/", $currentUrlSegment, $paramData)) {
-                            $data[$paramName] = $paramData[0];
-                            continue;
-                        }
-                    }
-                }
-                
-                if (empty($urlSegments[$i]) && $this->defaults !== null) {
-
-                    if (!preg_match("/^({)(\w+)(})$/i", $routeSegments[$i], $paramName)) {
-                        throw new RoutingException("Provided default for unknown param!");
-                    }
-
-                    $paramName = $paramName[2];
-
-                    $data[$paramName] = $this->defaults[$paramName];
-                    break;
-                }
-
-                return null;
-            }
-        }
-        
-        return new MatchedRoute($this, $data);
-    }
-
-    /**
-     * Returns an array representation of this Route
+     * Returns an JSONSerializable representation of this Route
      * 
      * @return array
      */
-    public function getConfig(): array
+    public function jsonSerialize(): array
     {
         return [
             "name" => $this->name,
             "path"=> $this->path,
             "methods"=> $this->methods,
-            "callback" => is_array($this->callback) || is_string($this->callback) ? $this->callback : null,
+            "callback" => is_array($this->callback)
+                        ||is_string($this->callback) ? $this->callback : "Closure",
             "params" => $this->params,
             "defaults" => $this->defaults
         ];
