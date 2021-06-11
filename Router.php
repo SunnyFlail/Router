@@ -24,13 +24,13 @@ class Router
      * @param array $methods Http methods which this Route will respond to
      * @param string $name Name of the Route
      * @param string $path Path This Route will match
-     * @param callable $callback
+     * @param callable $callback Array containing Controller name and method name
      * @param array|null $params
      * @param array|null $defaults
      * @return void
      */
     public function addRoute(
-        string $name, string $path,  callable $callback, array $methods = ["GET", "HEAD"],
+        string $name, string $path,  array $callback, array $methods = ["GET", "HEAD"],
         array $params = [], array $defaults = []
     ){       
         if (isset($this->routeCollection[$name])) {

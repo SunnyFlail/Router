@@ -36,10 +36,9 @@ final class Route implements \JsonSerializable
     /**
      * Callback function used by this route
      *
-     * This may be an array containing the Controller fqcn and method name,
-     * function name or a Closure
+     * This may be an array containing the Controller fqcn and method name
      * 
-     * @var callable
+     * @var array
      */
     protected $callback;
 
@@ -63,7 +62,7 @@ final class Route implements \JsonSerializable
     function __construct(
         string $name,
         string $path,
-        callable $callback,
+        array $callback,
         array $methods = ["GET", "HEAD"],
         array $params = [],
         array $defaults = []
@@ -101,9 +100,9 @@ final class Route implements \JsonSerializable
      *
      * @see $callback
      * 
-     * @return callable
+     * @return array
     */
-    public function getCallback(): callable
+    public function getCallback(): array
     {
         return $this->callback;
     }
