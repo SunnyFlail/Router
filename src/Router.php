@@ -20,7 +20,7 @@ class Router
 
     public function __construct()
     {
-        $routeCollection = [];
+        $this->routeCollection = [];
     }
 
     /**
