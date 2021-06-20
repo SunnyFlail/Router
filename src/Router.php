@@ -176,10 +176,14 @@ class Router
      */
     public function insertConfig(array $config)
     {
-        $this->routeCollection = array_map(
-            fn ($name, $data) => new Route($name, ...$data),
-            array_keys($config),
-            $config
+        $this->routeCollection = array_reduce(
+            $config,
+            function(array $carry, array $current) {
+                $name = array_shift($current);
+                $carry[$name] = new Route($name, ...$current);
+                return $carry;
+            },
+            []
         );
     }
 

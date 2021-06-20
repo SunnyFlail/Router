@@ -2,6 +2,7 @@
     "name": "sunnyflail/router",
     "description": "A simple routing utility",
     "type": "library",
+    "license": "MIT",
     "require-dev": {
         "phpunit/phpunit": "^9.5"
     },

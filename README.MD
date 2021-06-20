@@ -19,13 +19,14 @@ Schema is almost the same for each of these methods
 
 ### **1.2. Loading from an associative array**
 Create new instance of Router and then call that instance's *`Router::insertConfig`* method,
-passing associative array with Route's name as key, and value of an array containg the rest of route data.
+passing an array with params as shown above
 eg.
 ```php
     use SunnyFlail\Router\Router;
     $router = new Router();
     $router->insertConfig([
-        "index" => [
+        [
+            "index",
             "/",
             fn() => print("Talking to you from '/'!"),
         ] 
