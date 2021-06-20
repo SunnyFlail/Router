@@ -1,14 +1,15 @@
 <?php
 
-namespace SunnyFlail\Router\Tests;
+namespace SunnyFlail\RouterTests;
 
 use \SunnyFlail\Router\{
     Route,
     Exceptions\UrlGenerationException
 };
 
-final class RouteProvider
+final class RouteDataProvider
 {
+    private static array $routes;
     
     public static function routeDataProvider(): array
     {
@@ -19,6 +20,11 @@ final class RouteProvider
                 "/add/",
                 fn() => printf("Add!"),
                 ["POST", "HEAD"]
+            ],
+            "Simple get route" => [
+                'index',
+                "/index/",
+                fn() => printf("Index!")    
             ],
             "Route with default Param" => [
                 'page',
@@ -60,16 +66,9 @@ final class RouteProvider
                     "page" => 0,
                     "orderby" => "id_asc"
                 ]
-            ],
-            "Simple get route" => [
-                'index',
-                "/index/",
-                fn() => printf("Index!")    
             ]
         ];
     }
-
-    private static array $routes;
 
     public static function routeProvider(): array
     {

@@ -16,21 +16,27 @@ class Router
      * 
      * @var array<Route>
      */
-    private array $routeCollection = [];
+    private array $routeCollection;
+
+    public function __construct()
+    {
+        $routeCollection = [];
+    }
 
     /**
      * Adds new Route 
      *
-     * @param array $methods Http methods which this Route will respond to
      * @param string $name Name of the Route
      * @param string $path Path This Route will match
-     * @param callable $callback Array containing Controller name and method name
+     * @param array|callable $callback Array containing Controller name and method name or callable
+     * @param array $methods Http methods which this Route will respond to
      * @param array|null $params
      * @param array|null $defaults
      * @return void
      */
     public function addRoute(
-        string $name, string $path,  array $callback, array $methods = ["GET", "HEAD"],
+        string $name, string $path,  array|callable $callback,
+        array $methods = ["GET", "HEAD"],
         array $params = [], array $defaults = []
     ){       
         if (isset($this->routeCollection[$name])) {
@@ -85,7 +91,6 @@ class Router
      */
     public function match(string $method, $requestPath): MatchedData
     {
-        $requestPath = $requestPath[-1] === "/" ? $requestPath : $requestPath."/";
 
         foreach ($this->routeCollection as $route) {
 
@@ -99,53 +104,43 @@ class Router
                 continue;
             }
     
-            if (!($params === null && $requestPath === $routePath)) {
+            if (!($params === [] && $requestPath === $routePath)) {
             
                 $requestSegments = explode("/", $requestPath);
                 $routeSegments = explode("/", $routePath);
     
                 for ($i = 0; $i < count($routeSegments); $i++) {
     
-                    if (isset($requestSegments[$i])) {
+                    $currentRequestSegment = $requestSegments[$i] ?? "";
+                    $currentRouteSegment = $routeSegments[$i];
     
-                        $currentRequestSegment = $requestSegments[$i];
-                        $currentRouteSegment = $routeSegments[$i];
-    
-                        if (strcasecmp($currentRequestSegment, $currentRouteSegment) === 0) {
-                            continue;
-                        } 
-                        
-                        if (preg_match("/^\{(\w+)\}$/i", $currentRouteSegment, $paramName)) {
-    
-                            $paramName = $paramName[1];
-    
-                            if (!isset($params[$paramName])) {
-                                throw new RoutingException(
-                                    sprintf("Regex for param '%s' not provided!", $paramName));
-                            }
-                            if (preg_match(
-                                    sprintf("/%s/", $params[$paramName]),
-                                    $currentRequestSegment,
-                                    $paramData)
-                            ) {
-                                $data[$paramName] = $paramData[0];
-                                continue;
-                            }
-                        }
-                    }
+                    if (strcasecmp($currentRequestSegment, $currentRouteSegment) === 0) {
+                        continue;
+                    } 
                     
-                    if (empty($requestSegments[$i]) && $defaults !== null) {
-                        if (!preg_match("/^\{(\w+)\}$/i", $routeSegments[$i], $paramName)) {
-                            continue;
-                        }
+                    if (preg_match("/^\{(\w+)\}$/i", $currentRouteSegment, $paramName)) {
+
                         $paramName = $paramName[1];
-                        if (!isset($defaults[$paramName])) {
+
+                        if (!isset($params[$paramName])) {
+                            throw new RoutingException(
+                                sprintf("Regex for param '%s' not provided!", $paramName));
+                        }
+                        if (preg_match(
+                                sprintf("/%s/", $params[$paramName]),
+                                $currentRequestSegment,
+                                $paramData)
+                        ) {
+                            $data[$paramName] = $paramData[0];
                             continue;
                         }
-                        $data[$paramName] = $defaults[$paramName];
-                        break;
+                        if (isset($defaults[$paramName])
+                        && !isset($requestSegments[$i + 1])
+                        ) {
+                            $data[$paramName] = $defaults[$paramName];
+                            break;
+                        }
                     }
-    
                     continue(2);
                 }
             }
@@ -172,6 +167,20 @@ class Router
             }
             $this->routeCollection[$name] = $route;
         }
+    }
+
+    /**
+     * Inserts routes from config array
+     * 
+     * @param array[] $config
+     */
+    public function insertConfig(array $config)
+    {
+        $this->routeCollection = array_map(
+            fn ($name, $data) => new Route($name, ...$data),
+            array_keys($config),
+            $config
+        );
     }
 
 }

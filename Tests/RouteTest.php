@@ -1,6 +1,6 @@
 <?php
 
-namespace SunnyFlail\Router\Tests;
+namespace SunnyFlail\RouterTests;
 
 use \SunnyFlail\Router\{
     Route,
@@ -12,7 +12,7 @@ final class RouteTest extends TestCase
 {
 
     /**
-     * @dataProvider \SunnyFlail\Router\Tests\RouteProvider::generateUrlProvider
+     * @dataProvider \SunnyFlail\RouterTests\RouteDataProvider::generateUrlProvider
      */
     public function testGeneratingUrl(Route $route, array $data, string $expectedUrl)
     {

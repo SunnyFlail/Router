@@ -1,6 +1,6 @@
 <?php
 
-namespace SunnyFlail\Router\Tests;
+namespace SunnyFlail\RouterTests;
 
 use \SunnyFlail\Router\{
     Router,
@@ -17,7 +17,7 @@ final class RouterProvider
         if (!isset(self::$router)) {
             self::$router = new Router();
 
-            foreach(RouteProvider::routeDataProvider() as $routeData) {
+            foreach(RouteDataProvider::routeDataProvider() as $routeData) {
                 self::$router->addRoute(...$routeData);
             }
         }
@@ -75,7 +75,7 @@ final class RouterProvider
             "Route already exists!" => [
                 $router,
                 fn(Router $router) => $router->addRoute(
-                    ...RouteProvider::routeDataProvider()["Simple post route"]
+                    ...RouteDataProvider::routeDataProvider()["Simple post route"]
                 ),
                 RoutingException::class
             ]

@@ -1,6 +1,6 @@
 <?php
 
-namespace SunnyFlail\Router\Tests;
+namespace SunnyFlail\RouterTests;
 
 use \SunnyFlail\Router\{
     Router,
@@ -12,7 +12,7 @@ final class RoutingTest extends TestCase
 {
 
     /**
-     * @dataProvider \SunnyFlail\Router\Tests\RouterProvider::matchProvider
+     * @dataProvider \SunnyFlail\RouterTests\RouterProvider::matchProvider
      */
     public function testRouteMatching(Router $router, string $url, string $method, ?Route $expected)
     {
@@ -25,11 +25,10 @@ final class RoutingTest extends TestCase
     }
 
     /**
-     * @dataProvider \SunnyFlail\Router\Tests\RouterProvider::paramDataProvider
+     * @dataProvider \SunnyFlail\RouterTests\RouterProvider::paramDataProvider
      */
     public function testParamMatching(Router $router, string $url, string $method, array $expected)
     {
- 
         $matchedData = $router->match($method, $url)?->getData();
 
         $this->assertEquals(
@@ -39,7 +38,7 @@ final class RoutingTest extends TestCase
     }
 
     /**
-     * @dataProvider \SunnyFlail\Router\Tests\RouterProvider::exceptionProvider
+     * @dataProvider \SunnyFlail\RouterTests\RouterProvider::exceptionProvider
      */
     public function testExceptionThrowing(Router $router, callable $callback, string $exceptionName)
     {

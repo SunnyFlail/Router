@@ -18,10 +18,12 @@
     },
     "autoload": {
         "psr-4": {
-            "SunnyFlail\\Router\\" : ""
-        },
-        "exclude-from-classmap": [
-            "Tests"
-        ]
+            "SunnyFlail\\Router\\" : "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "SunnyFlail\\RouterTests\\" : "Tests"
+        }
     }
 }

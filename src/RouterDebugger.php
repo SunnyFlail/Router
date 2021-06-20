@@ -4,12 +4,11 @@ namespace SunnyFlail\Router;
 
 use RuntimeException;
 
-/**
- * Simple debbuging tool for Router
- */
-final class RouterDebbuger
+final class RouterDebugger
 {
-
+    /**
+     * Simple debbuging tool for Router
+     */
     private Router $router;
     private array $issues;
     private int $issueCount;
