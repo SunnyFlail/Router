@@ -2,15 +2,18 @@
 
 namespace SunnyFlail\Router;
 
+use SunnyFlail\Router\Interfaces\IMatchedData;
+use SunnyFlail\Router\Interfaces\IRoute;
+
 /**
  * Class containing matched Route and array containing data from route params
  */
-final class MatchedData
+final class MatchedData implements IMatchedData
 {
     /**
      * @var Route Route from which this data was scraped from
      */
-    private Route $route;
+    private IRoute $route;
 
     /**
      * @var array Data matched from Route params
@@ -19,31 +22,18 @@ final class MatchedData
      */
     private array $data;
 
-    public function __construct(Route $route, array $data)
+    public function __construct(IRoute $route, array $data)
     {
         $this->route = $route;
         $this->data = $data;
     }
 
-    /**
-     * Returns data scraped from route parameters
-     * 
-     * It may be an empty array for Routes without parameters, 
-     * Or an associative array
-     * 
-     * @return array Data scraped from Route 
-     */
     public function getData(): array
     {
         return $this->data;
     }
 
-    /**
-     * Returns the Route which was matched
-     * 
-     * @return Route
-     */
-    public function getRoute(): Route
+    public function getRoute(): IRoute
     {
         return $this->route;
     }

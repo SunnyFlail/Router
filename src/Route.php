@@ -2,12 +2,13 @@
 
 namespace SunnyFlail\Router;
 
-use \SunnyFlail\Router\Exceptions\UrlGenerationException;
+use SunnyFlail\Router\Exceptions\UrlGenerationException;
+use SunnyFlail\Router\Interfaces\IRoute;
 
 /**
  * A Route
  */
-final class Route implements \JsonSerializable
+final class Route implements IRoute
 {
 
     /**
@@ -75,100 +76,46 @@ final class Route implements \JsonSerializable
         $this->defaults = $defaults;
     }
 
-    /**
-     * Returns name of Route
-     *
-     * @return string 
-     */
     public function getName(): string
     {
         return $this->name;
     }
 
-    /**
-     * Returns path
-     *
-     * @return string
-     */
     public function getPath(): string
     {
         return $this->path;
     }
 
-    /**
-     * Returns Callback associated with this Route
-     *
-     * @see $callback
-     * 
-     * @return array
-    */
-    public function getCallback(): array
+    public function getCallback(): mixed
     {
         return $this->callback;
     }
-    
-    /**
-     * Checks if route is parametrised
-     * 
-     * @return bool
-    */
+
     public function hasParams(): bool
     {
         return $this->params != null;
     }
-    
-    /**
-     * Returns array containing params
-     *
-     * @return array
-     */
+
     public function getParams(): array
     {
         return $this->params;
     }
 
-    /**
-     * Checks if this Route's parameters have default values
-     *
-     * @return bool
-     */
     public function hasDefaults(): bool
     {
         return $this->defaults != null;
     }
 
-    /**
-     * Returns array containing default param values | null
-     *
-     * @return array|null
-     */
     public function getDefaults(): array
     {
         return $this->defaults;
     }
 
-    /**
-     * Returns array containing HTTP methods this Route responds to
-     *
-     * @return array
-     */
     public function getMethods(): array
     {
         return $this->methods;
     }
 
-    /**
-     * Generates Url from provided data array
-     * 
-     * Data array MUST contain ALL params specified for the route
-     * 
-     * For eg. Schema @see $params
-     * 
-     * @param array $data Data adhering to this Route's schema
-     * 
-     * @return string Generated Url pointing to this Route
-     * @throws UrlGenerationException When provided data is malformed 
-     */
     public function generateUrl(array $data = []): string
     {
         $url = $this->path;
@@ -221,19 +168,14 @@ final class Route implements \JsonSerializable
         return $url;
     }
 
-    /**
-     * Returns an JSONSerializable representation of this Route
-     * 
-     * @return array
-     */
     public function jsonSerialize(): array
     {
         return [
             "name" => $this->name,
             "path"=> $this->path,
             "methods"=> $this->methods,
-            "callback" => is_array($this->callback)
-                        ||is_string($this->callback) ? $this->callback : "Closure",
+            "callback" => (is_array($this->callback) || is_string($this->callback))
+            ? $this->callback : "Closure",
             "params" => $this->params,
             "defaults" => $this->defaults
         ];

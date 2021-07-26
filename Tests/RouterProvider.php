@@ -5,8 +5,8 @@ namespace SunnyFlail\RouterTests;
 use \SunnyFlail\Router\{
     Router,
     Exceptions\NotFoundException,
-    Exceptions\RoutingException
 };
+use SunnyFlail\Router\Exceptions\RouteOverwriteException;
 
 final class RouterProvider
 {
@@ -77,7 +77,7 @@ final class RouterProvider
                 fn(Router $router) => $router->addRoute(
                     ...RouteDataProvider::routeDataProvider()["Simple post route"]
                 ),
-                RoutingException::class
+                RouteOverwriteException::class
             ]
         ];
     }
